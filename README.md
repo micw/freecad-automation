@@ -52,5 +52,9 @@ Ein Diffuser für LED-Matrix PCBs mit adressierbaren RGB-LEDS.
     * Befestigungs-Ösen
     * Aussparungen für Kabel
 
+## Fidget Pyramid (Work-in-Progress)
 
-
+* Slicer Settings
+    * Beim Import: "Als ein kombiniertes Objekt importieren"
+    * Prozess 0.16mm Standard @AC KS1
+    * Wenn der "Griff" an ist, müssen dafür Stützstrukturen aktiviert werden (mit Default-Werten)

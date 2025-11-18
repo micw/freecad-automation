@@ -24,9 +24,16 @@ DEFAULTS = {
     "DIFFUSER_GRID_WALL_THICKNESS_MM": 1.0,
     "DIFFUSER_GRID_HEIGHT_MM": 6.0,
     "DIFFUSER_OUTER_WALL_THICKNESS_MM": 1.0,
-    "DIFFUSER_OUTER_WALL_EXTRA_HEIGHT_MM": 1.5,  # how much higher than grid
+    "DIFFUSER_PCB_THICKNESS_MM": 1.6,
+    "DIFFUSER_PCB_CLIP_HEIGHT_MM": 1.0,
+    "DIFFUSER_PCB_CLIP_WIDTH_MM": 5.0,
+    "DIFFUSER_PCB_CLIP_DEPTH_MM": 0.5,
+    "DIFFUSER_PCB_CLIP_COUNT_X": 4,  # Clips on X-parallel sides (top/bottom) - distributed along X axis
+    "DIFFUSER_PCB_CLIP_COUNT_Y": 0,  # Clips on Y-parallel sides (left/right) - distributed along Y axis
     "DIFFUSER_LED_MATRIX_X": 8,
     "DIFFUSER_LED_MATRIX_Y": 8,
+    "DIFFUSER_MODULES_X": 2,
+    "DIFFUSER_MODULES_Y": 1,
     "DIFFUSER_RESISTOR_HEIGHT_MM": 1.0,
     "DIFFUSER_RESISTOR_WIDTH_MM": 3.0,
     "DIFFUSER_RESISTOR_ORIENTATION": "horizontal",  # options: "horizontal", "vertical", "none"
@@ -63,21 +70,34 @@ def create_geometry(doc):
     grid_wall_thickness = PARAMS["DIFFUSER_GRID_WALL_THICKNESS_MM"]
     grid_height = PARAMS["DIFFUSER_GRID_HEIGHT_MM"]
     outer_wall_thickness = PARAMS["DIFFUSER_OUTER_WALL_THICKNESS_MM"]
-    outer_wall_extra_height = PARAMS["DIFFUSER_OUTER_WALL_EXTRA_HEIGHT_MM"]
+    pcb_thickness = PARAMS["DIFFUSER_PCB_THICKNESS_MM"]
+    pcb_clip_height = PARAMS["DIFFUSER_PCB_CLIP_HEIGHT_MM"]
+    pcb_clip_width = PARAMS["DIFFUSER_PCB_CLIP_WIDTH_MM"]
+    pcb_clip_depth = PARAMS["DIFFUSER_PCB_CLIP_DEPTH_MM"]
+    pcb_clip_count_x = PARAMS["DIFFUSER_PCB_CLIP_COUNT_X"]
+    pcb_clip_count_y = PARAMS["DIFFUSER_PCB_CLIP_COUNT_Y"]
     led_matrix_x = PARAMS["DIFFUSER_LED_MATRIX_X"]
     led_matrix_y = PARAMS["DIFFUSER_LED_MATRIX_Y"]
+    modules_x = PARAMS["DIFFUSER_MODULES_X"]
+    modules_y = PARAMS["DIFFUSER_MODULES_Y"]
     resistor_height = PARAMS["DIFFUSER_RESISTOR_HEIGHT_MM"]
     resistor_width = PARAMS["DIFFUSER_RESISTOR_WIDTH_MM"]
     resistor_orientation = PARAMS["DIFFUSER_RESISTOR_ORIENTATION"].lower()
-    # mounting posts removed
     
     # Calculate dimensions
     base_thickness = max(layer_height * base_layers, 0.01)
-    outer_wall_height = grid_height + outer_wall_extra_height
-    total_size_x = panel_size_x + 2 * outer_wall_thickness
-    total_size_y = panel_size_y + 2 * outer_wall_thickness
+    outer_wall_height = grid_height + pcb_thickness + pcb_clip_height
+    pcb_support_height = grid_height + pcb_thickness  # Height where PCB rests
     
-    # mounting posts removed
+    # Calculate total panel size (multiple modules)
+    total_panel_x = modules_x * panel_size_x
+    total_panel_y = modules_y * panel_size_y
+    total_size_x = total_panel_x + 2 * outer_wall_thickness
+    total_size_y = total_panel_y + 2 * outer_wall_thickness
+    
+    # Calculate total LED counts across all modules
+    total_leds_x = led_matrix_x * modules_x
+    total_leds_y = led_matrix_y * modules_y
 
     # Create base plate (diffuser) - larger to accommodate outer wall
     base_shape = Part.makeBox(total_size_x, total_size_y, base_thickness)
@@ -93,46 +113,48 @@ def create_geometry(doc):
     # Create grid structure (inside the panel area)
     grid_shapes = []
     
-    # Calculate cell dimensions
-    cell_width_x = (panel_size_x - (led_matrix_x + 1) * grid_wall_thickness) / led_matrix_x
-    cell_width_y = (panel_size_y - (led_matrix_y + 1) * grid_wall_thickness) / led_matrix_y
+    # Calculate cell dimensions (uniform across all modules)
+    cell_width_x = (total_panel_x - (total_leds_x + 1) * grid_wall_thickness) / total_leds_x
+    cell_width_y = (total_panel_y - (total_leds_y + 1) * grid_wall_thickness) / total_leds_y
     
     # Create vertical walls (parallel to Y axis)
-    for i in range(led_matrix_x + 1):
+    for i in range(total_leds_x + 1):
         x_pos = outer_wall_thickness + i * (cell_width_x + grid_wall_thickness)
         wall = Part.makeBox(
             grid_wall_thickness,
-            panel_size_y,
+            total_panel_y,
             grid_height
         )
         wall.translate(App.Vector(x_pos, outer_wall_thickness, base_thickness))
         grid_shapes.append(wall)
     
     # Create horizontal walls (parallel to X axis)
-    for j in range(led_matrix_y + 1):
+    for j in range(total_leds_y + 1):
         y_pos = outer_wall_thickness + j * (cell_width_y + grid_wall_thickness)
         wall = Part.makeBox(
-            panel_size_x,
+            total_panel_x,
             grid_wall_thickness,
             grid_height
         )
         wall.translate(App.Vector(outer_wall_thickness, y_pos, base_thickness))
         grid_shapes.append(wall)
     
-    # Fuse all grid shapes together
-    grid_shape = grid_shapes[0]
-    for s in grid_shapes[1:]:
-        grid_shape = grid_shape.fuse(s)
+    # Fuse all grid shapes together (efficient batch operation)
+    grid_shape = grid_shapes[0].multiFuse(grid_shapes[1:])
     
     # Cut out resistor slots based on orientation
     resistor_cutouts = []
     
     if resistor_orientation == "horizontal":
         # Cut from horizontal walls (parallel to X axis), excluding first and last
-        for j in range(1, led_matrix_y):  # Exclude first (0) and last (led_matrix_y) wall
+        for j in range(1, total_leds_y):  # Exclude first (0) and last wall
+            # Skip walls at module boundaries
+            if j % led_matrix_y == 0:
+                continue
+            
             y_pos = outer_wall_thickness + j * (cell_width_y + grid_wall_thickness)
             # For each cell in X direction, create a cutout in the middle of the wall
-            for i in range(led_matrix_x):
+            for i in range(total_leds_x):
                 # Calculate center of wall segment between two LEDs
                 x_center = outer_wall_thickness + (i + 0.5) * (cell_width_x + grid_wall_thickness) + grid_wall_thickness / 2
                 # Create cutout box
@@ -151,10 +173,14 @@ def create_geometry(doc):
     
     elif resistor_orientation == "vertical":
         # Cut from vertical walls (parallel to Y axis), excluding first and last
-        for i in range(1, led_matrix_x):  # Exclude first (0) and last (led_matrix_x) wall
+        for i in range(1, total_leds_x):  # Exclude first (0) and last wall
+            # Skip walls at module boundaries
+            if i % led_matrix_x == 0:
+                continue
+            
             x_pos = outer_wall_thickness + i * (cell_width_x + grid_wall_thickness)
             # For each cell in Y direction, create a cutout in the middle of the wall
-            for j in range(led_matrix_y):
+            for j in range(total_leds_y):
                 # Calculate center of wall segment between two LEDs
                 y_center = outer_wall_thickness + (j + 0.5) * (cell_width_y + grid_wall_thickness) + grid_wall_thickness / 2
                 # Create cutout box
@@ -174,10 +200,10 @@ def create_geometry(doc):
     # else: resistor_orientation == "none" or invalid -> no cutouts
     
     # Cut all resistor slots from the grid
-    for cutout in resistor_cutouts:
-        grid_shape = grid_shape.cut(cutout)
-    
-    # mounting posts removed
+    if resistor_cutouts:
+        # Combine all cutouts into one shape, then do single cut operation
+        combined_cutouts = resistor_cutouts[0].multiFuse(resistor_cutouts[1:]) if len(resistor_cutouts) > 1 else resistor_cutouts[0]
+        grid_shape = grid_shape.cut(combined_cutouts)
 
     # Add grid to document
     grid_obj = doc.addObject("Part::Feature", "Grid")
@@ -195,11 +221,140 @@ def create_geometry(doc):
     outer_shell.translate(App.Vector(0, 0, base_thickness))
     
     # Inner cutout (hollow it out)
-    inner_cutout = Part.makeBox(panel_size_x, panel_size_y, outer_wall_height)
+    inner_cutout = Part.makeBox(total_panel_x, total_panel_y, outer_wall_height)
     inner_cutout.translate(App.Vector(outer_wall_thickness, outer_wall_thickness, base_thickness))
     
     # Cut out the inner part to create wall
     outer_wall_shape = outer_shell.cut(inner_cutout)
+    
+    # Create clip slots (vertical cuts from top down to grid height)
+    clip_slots = []
+    slot_depth = outer_wall_height - grid_height  # From top to top of grid walls
+    
+    # Slots on Y-parallel sides (left and right)
+    if pcb_clip_count_y > 0:
+        for side in [0, 1]:  # 0 = left, 1 = right
+            x_pos = 0 if side == 0 else total_size_x - outer_wall_thickness
+            for i in range(pcb_clip_count_y):
+                # Center position of clip i
+                clip_center_y = outer_wall_thickness + (i + 0.5) * total_panel_y / pcb_clip_count_y
+                
+                # Create 2 slots per clip (left and right of clip)
+                # Slots are positioned to create a tongue of width pcb_clip_width
+                for offset in [-(pcb_clip_width / 2 + grid_wall_thickness / 2), (pcb_clip_width / 2 + grid_wall_thickness / 2)]:
+                    slot = Part.makeBox(
+                        outer_wall_thickness,
+                        grid_wall_thickness,
+                        slot_depth
+                    )
+                    slot.translate(App.Vector(
+                        x_pos,
+                        clip_center_y + offset - grid_wall_thickness / 2,
+                        base_thickness + grid_height
+                    ))
+                    clip_slots.append(slot)
+    
+    # Slots on X-parallel sides (top and bottom)
+    if pcb_clip_count_x > 0:
+        for side in [0, 1]:  # 0 = bottom, 1 = top
+            y_pos = 0 if side == 0 else total_size_y - outer_wall_thickness
+            for i in range(pcb_clip_count_x):
+                # Center position of clip i
+                clip_center_x = outer_wall_thickness + (i + 0.5) * total_panel_x / pcb_clip_count_x
+                
+                # Create 2 slots per clip (left and right of clip)
+                # Slots are positioned to create a tongue of width pcb_clip_width
+                for offset in [-(pcb_clip_width / 2 + grid_wall_thickness / 2), (pcb_clip_width / 2 + grid_wall_thickness / 2)]:
+                    slot = Part.makeBox(
+                        grid_wall_thickness,
+                        outer_wall_thickness,
+                        slot_depth
+                    )
+                    slot.translate(App.Vector(
+                        clip_center_x + offset - grid_wall_thickness / 2,
+                        y_pos,
+                        base_thickness + grid_height
+                    ))
+                    clip_slots.append(slot)
+    
+        # Cut slots from outer wall to create spring tongues
+    if clip_slots:
+        combined_slots = clip_slots[0].multiFuse(clip_slots[1:]) if len(clip_slots) > 1 else clip_slots[0]
+        outer_wall_shape = outer_wall_shape.cut(combined_slots)
+    
+    # Add wedges to clips (45° ramps pointing inward)
+    clip_wedges = []
+    wedge_depth = pcb_clip_depth
+    # For 45° angle: height = 2 * depth (since we have two slopes: up and down)
+    # Position: 50% of lower slope at PCB top, top of triangle at tongue top
+    z_pcb_top = base_thickness + grid_height + pcb_thickness
+    z_top = base_thickness + outer_wall_height
+    # The middle (peak) should be at z_pcb_top
+    # From z_base to z_middle is one slope (wedge_depth vertical for 45°)
+    # So z_middle = z_base + wedge_depth, therefore z_base = z_pcb_top - wedge_depth
+    z_base = z_pcb_top - wedge_depth
+
+    # Wedges on Y-parallel sides (left and right)
+    if wedge_depth > 0 and pcb_clip_count_y > 0:
+        for side in [0, 1]:  # 0 = left, 1 = right
+            x_wall_inner = outer_wall_thickness if side == 0 else outer_wall_thickness + total_panel_x
+            for i in range(pcb_clip_count_y):
+                clip_center_y = outer_wall_thickness + (i + 0.5) * total_panel_y / pcb_clip_count_y
+                y_start = clip_center_y - pcb_clip_width / 2
+                z_middle = (z_base + z_top) / 2
+
+                if side == 0:
+                    tri = Part.makePolygon([
+                        App.Vector(x_wall_inner, 0, z_base),
+                        App.Vector(x_wall_inner + wedge_depth, 0, z_middle),
+                        App.Vector(x_wall_inner, 0, z_top),
+                        App.Vector(x_wall_inner, 0, z_base)
+                    ])
+                else:
+                    tri = Part.makePolygon([
+                        App.Vector(x_wall_inner, 0, z_base),
+                        App.Vector(x_wall_inner - wedge_depth, 0, z_middle),
+                        App.Vector(x_wall_inner, 0, z_top),
+                        App.Vector(x_wall_inner, 0, z_base)
+                    ])
+
+                tri_face = Part.Face(tri)
+                wedge = tri_face.extrude(App.Vector(0, pcb_clip_width, 0))
+                wedge.translate(App.Vector(0, y_start, 0))
+                clip_wedges.append(wedge)
+
+    # Wedges on X-parallel sides (top and bottom)
+    if wedge_depth > 0 and pcb_clip_count_x > 0:
+        for side in [0, 1]:  # 0 = bottom, 1 = top
+            y_wall_inner = outer_wall_thickness if side == 0 else outer_wall_thickness + total_panel_y
+            for i in range(pcb_clip_count_x):
+                clip_center_x = outer_wall_thickness + (i + 0.5) * total_panel_x / pcb_clip_count_x
+                x_start = clip_center_x - pcb_clip_width / 2
+                z_middle = (z_base + z_top) / 2
+
+                if side == 0:
+                    tri = Part.makePolygon([
+                        App.Vector(0, y_wall_inner, z_base),
+                        App.Vector(0, y_wall_inner + wedge_depth, z_middle),
+                        App.Vector(0, y_wall_inner, z_top),
+                        App.Vector(0, y_wall_inner, z_base)
+                    ])
+                else:
+                    tri = Part.makePolygon([
+                        App.Vector(0, y_wall_inner, z_base),
+                        App.Vector(0, y_wall_inner - wedge_depth, z_middle),
+                        App.Vector(0, y_wall_inner, z_top),
+                        App.Vector(0, y_wall_inner, z_base)
+                    ])
+
+                tri_face = Part.Face(tri)
+                wedge = tri_face.extrude(App.Vector(pcb_clip_width, 0, 0))
+                wedge.translate(App.Vector(x_start, 0, 0))
+                clip_wedges.append(wedge)
+
+    if clip_wedges:
+        combined_wedges = clip_wedges[0].multiFuse(clip_wedges[1:]) if len(clip_wedges) > 1 else clip_wedges[0]
+        outer_wall_shape = outer_wall_shape.fuse(combined_wedges)
     
     # Add outer wall to document
     outer_wall_obj = doc.addObject("Part::Feature", "OuterWall")
