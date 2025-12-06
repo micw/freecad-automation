@@ -19,7 +19,7 @@ import FreeCAD as App
 DEFAULTS = {
     "DIFFUSER_PANEL_SIZE_X_MM": 66.0,  # LED panel size (grid is built inside this)
     "DIFFUSER_PANEL_SIZE_Y_MM": 67.0,
-    "DIFFUSER_LAYER_HEIGHT_MM": 0.2,
+    "DIFFUSER_LAYER_HEIGHT_MM": 0.16,
     "DIFFUSER_BASE_LAYERS": 2,
     "DIFFUSER_GRID_WALL_THICKNESS_MM": 1.0,
     "DIFFUSER_GRID_HEIGHT_MM": 6.0,
@@ -32,11 +32,17 @@ DEFAULTS = {
     "DIFFUSER_PCB_CLIP_COUNT_Y": 0,  # Clips on Y-parallel sides (left/right) - distributed along Y axis
     "DIFFUSER_LED_MATRIX_X": 8,
     "DIFFUSER_LED_MATRIX_Y": 8,
-    "DIFFUSER_MODULES_X": 2,
+    "DIFFUSER_MODULES_X": 4,
     "DIFFUSER_MODULES_Y": 1,
     "DIFFUSER_RESISTOR_HEIGHT_MM": 1.0,
     "DIFFUSER_RESISTOR_WIDTH_MM": 3.0,
     "DIFFUSER_RESISTOR_ORIENTATION": "horizontal",  # options: "horizontal", "vertical", "none"
+    "DIFFUSER_EYELET_RADIUS_MM": 4.0,
+    "DIFFUSER_EYELET_HOLE_RADIUS_MM": 1.6,
+    "DIFFUSER_EYELET_HEIGHT_MM": 3.0,
+    "DIFFUSER_EYELET_FLAT_OFFSET_MM": 2.0,
+    "DIFFUSER_EYELET_COUNT_X": 2,
+    "DIFFUSER_EYELET_COUNT_Y": 0,
 }
 
 # Load parameters (clone defaults and override from environment)
@@ -83,6 +89,12 @@ def create_geometry(doc):
     resistor_height = PARAMS["DIFFUSER_RESISTOR_HEIGHT_MM"]
     resistor_width = PARAMS["DIFFUSER_RESISTOR_WIDTH_MM"]
     resistor_orientation = PARAMS["DIFFUSER_RESISTOR_ORIENTATION"].lower()
+    eyelet_radius = PARAMS["DIFFUSER_EYELET_RADIUS_MM"]
+    eyelet_hole_radius = PARAMS["DIFFUSER_EYELET_HOLE_RADIUS_MM"]
+    eyelet_height = PARAMS["DIFFUSER_EYELET_HEIGHT_MM"]
+    eyelet_flat_offset = PARAMS["DIFFUSER_EYELET_FLAT_OFFSET_MM"]
+    eyelet_count_x = PARAMS["DIFFUSER_EYELET_COUNT_X"]
+    eyelet_count_y = PARAMS["DIFFUSER_EYELET_COUNT_Y"]
     
     # Calculate dimensions
     base_thickness = max(layer_height * base_layers, 0.01)
@@ -356,6 +368,73 @@ def create_geometry(doc):
         combined_wedges = clip_wedges[0].multiFuse(clip_wedges[1:]) if len(clip_wedges) > 1 else clip_wedges[0]
         outer_wall_shape = outer_wall_shape.fuse(combined_wedges)
     
+    def build_eyelet_template(height):
+        """Create a D-shaped eyelet with its flat face on plane X=0 and centered on Y=0."""
+        rect_length = eyelet_radius + eyelet_flat_offset
+        rectangle = Part.makeBox(rect_length, 2 * eyelet_radius, height)
+        rectangle.translate(App.Vector(0, -eyelet_radius, 0))
+
+        circle = Part.makeCylinder(eyelet_radius, height)
+        circle.translate(App.Vector(rect_length, 0, 0))
+
+        shape = rectangle.fuse(circle)
+
+        hole = Part.makeCylinder(eyelet_hole_radius, height)
+        hole.translate(App.Vector(rect_length, 0, 0))
+
+        return shape.cut(hole)
+
+    eyelet_template = None
+    eyelet_instances = []
+
+    if eyelet_radius > 0 and eyelet_hole_radius > 0 and eyelet_hole_radius < eyelet_radius and eyelet_height > 0:
+        eyelet_template = build_eyelet_template(eyelet_height)
+        eyelet_top_z = base_thickness + outer_wall_height
+        eyelet_bottom_z = eyelet_top_z - eyelet_height
+
+        def distribute_eyelets(count, is_x_axis):
+            if count <= 0:
+                return []
+            span = total_panel_x if is_x_axis else total_panel_y
+            positions = [
+                outer_wall_thickness + (i + 0.5) * span / count
+                for i in range(count)
+            ]
+            return positions
+
+        # Eyelets on left/right (Y sides)
+        positions_y = distribute_eyelets(eyelet_count_y, is_x_axis=False)
+        for side in ["left", "right"]:
+            if not positions_y:
+                break
+            rotation = 180 if side == "left" else 0
+            attach_x = 0 if side == "left" else total_size_x
+            for center_y in positions_y:
+                eyelet = eyelet_template.copy()
+                if rotation != 0:
+                    eyelet.rotate(App.Vector(0, 0, 0), App.Vector(0, 0, 1), rotation)
+                eyelet.translate(App.Vector(attach_x, center_y, eyelet_bottom_z))
+                eyelet_instances.append(eyelet)
+
+        # Eyelets on top/bottom (X sides)
+        positions_x = distribute_eyelets(eyelet_count_x, is_x_axis=True)
+        for side in ["bottom", "top"]:
+            if not positions_x:
+                break
+            rotation = -90 if side == "bottom" else 90
+            attach_y = 0 if side == "bottom" else total_size_y
+            for center_x in positions_x:
+                eyelet = eyelet_template.copy()
+                eyelet.rotate(App.Vector(0, 0, 0), App.Vector(0, 0, 1), rotation)
+                eyelet.translate(App.Vector(center_x, attach_y, eyelet_bottom_z))
+                eyelet_instances.append(eyelet)
+
+        if eyelet_instances:
+            combined_eyelets = eyelet_instances[0]
+            if len(eyelet_instances) > 1:
+                combined_eyelets = combined_eyelets.multiFuse(eyelet_instances[1:])
+            outer_wall_shape = outer_wall_shape.fuse(combined_eyelets)
+
     # Add outer wall to document
     outer_wall_obj = doc.addObject("Part::Feature", "OuterWall")
     outer_wall_obj.Label = f"OuterWall"

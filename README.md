@@ -43,8 +43,11 @@ Ein Diffuser für LED-Matrix PCBs mit adressierbaren RGB-LEDS.
     * Beim Import: "Als ein kombiniertes Objekt importieren"
     * Objekt "Object_1" -> Farbe Weiß wählen; Rest: schwarz
     * Prozess 0.16mm Standard @AC KS1
-        * Anzahl der langsamen Schichten: 2 (dadurch werden die 2 Diffusor-Schichten sauberer gedruckt)
+        * Allgemein -> Qualität -> Anzahl der langsamen Schichten: 2 (dadurch werden die 2 Diffusor-Schichten sauberer gedruckt)
+        * Objekte -> Object_1 (Diffusor-Schicht) -> Qualität -> Wände und Oberflächen
+            * Flussrate 1,13
         * Multimaterial: Reinigungsturm deaktivieren
+    * Schraubenlöcher aktiv? -> Stützstruktur aktivieren
 * Ideen
     * mehrere LED-Matrix-PCBs in einem Rahmen horizontal und/oder vertikal
     * mehrere Rahmen zusammensteckbar
