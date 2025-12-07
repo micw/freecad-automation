@@ -11,12 +11,12 @@ import FreeCAD as App
 
 # Default parameters - can be overridden via environment variables with same name
 DEFAULTS = {
-    "EINSCHUB_WIDTH_MM": 38.0,      # Breite (X)
-    "EINSCHUB_HEIGHT_MM": 36.0,     # Höhe (Y)
+    "EINSCHUB_WIDTH_MM": 52.0,      # Breite (X)
+    "EINSCHUB_HEIGHT_MM": 46.0,     # Höhe (Y)
     "EINSCHUB_THICKNESS_MM": 1.0,   # Dicke (Z)
-    "EINSCHUB_CORNER_RADIUS_MM": 3.0,  # Radius der unteren Ecken
+    "EINSCHUB_CORNER_RADIUS_MM": 6.0,  # Radius der unteren Ecken
     # Verstärkte Ränder (auf Oberseite)
-    "EINSCHUB_RIM_THICKNESS_MM": 2.0,  # Dicke der verstärkten Ränder
+    "EINSCHUB_RIM_THICKNESS_MM": 2.5,  # Dicke der verstärkten Ränder
     "EINSCHUB_RIM_WIDTH_MM": 0.6,      # Breite der verstärkten Ränder
     "EINSCHUB_RIM_TOP": 1,             # Oberer Rand an (1) / aus (0)
     "EINSCHUB_RIM_SIDES_PERCENT": 50.0,  # Seitliche Ränder: wie weit von oben (in %)
