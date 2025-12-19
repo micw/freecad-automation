@@ -61,3 +61,32 @@ Ein Diffuser für LED-Matrix PCBs mit adressierbaren RGB-LEDS.
     * Beim Import: "Als ein kombiniertes Objekt importieren"
     * Prozess 0.16mm Standard @AC KS1
     * Wenn der "Griff" an ist, müssen dafür Stützstrukturen aktiviert werden (mit Default-Werten)
+
+## Tablet Holder
+
+Ein parametrischer Halter für Tablets als digitaler Bilderrahmen. Der Halter wird hinten auf einen passenden Holzrahmen geklebt und hält das Tablet mit Clips zum Einrasten.
+
+![Tablet Holder in FreeCAD](img/tablet_holder1.png)
+![Tablet Holder montiert](img/tablet_holder2.jpeg)
+
+* Geometrie-Datei: `geometry_tablet_holder.py`
+* Features
+    * Parametrisch für verschiedene Tablet-Größen anpassbar
+    * Zwei gespiegelte Halter (links/rechts) mit separaten Cutouts für Anschlüsse
+    * Separate Balken-Teile zum extra Drucken und Ankleben (bessere Druckqualität)
+    * Clips mit Halbzylinder-Nubs zum Einrasten des Tablets
+    * Diagonale Verstrebung zwischen Rückwand und Balken
+    * Gussets für zusätzliche Stabilität
+    * Konfigurierbare Cutouts in den Seitenwänden (für Kabel/Buttons)
+* Parameter (Default für Huawei MediaPad M5 Lite 10)
+    * `TABLET_THICKNESS`: Dicke des Tablets (9.0mm)
+    * `HOLDER_WIDTH`: Breite des Halters (23.0mm)
+    * `HOLDER_HEIGHT`: Höhe des Halters (150.0mm)
+    * `BEAM_TILT_ANGLE`: Neigungswinkel des Balkens (15°)
+    * `CUTOUT_*`: Position und Größe der Cutouts für Anschlüsse
+* Slicer-Settings
+    * Prozess 0.20mm Standard
+    * Die Halterungen werden mit dem aufzuklebenden Flansch nach oben gedruckt. Stützstrukturen müssen aktiviert werden
+    * Die beiden Ständer-Teile werdenliegend ohne Stützen gedruckt
+    * Infill 0%, dafür 100 Wandschleifen (massiver Druck als "Wände" für bessere Stabilität)
+
