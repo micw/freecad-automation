@@ -9,8 +9,8 @@ DEFAULTS_HUAWEI_MEDIAPAD_M5_LITE_10 = {
     "WALL_THICKNESS": 2.4,
     "HOLDER_WIDTH": 23.0,
     "HOLDER_HEIGHT": 150.0,
-    "FLANGE_WIDTH": 13.0,
-    "SCREW_DIAMETER": 2.0,
+    "SIDE_FLANGE_WIDTH": 13.0,
+    "BOTTOM_FLANGE_WIDTH": 13.0,
     "CLIP_WIDTH": 12.0,
     "CLIP_LENGTH": 20.0,
     "CLIP_NUB_RADIUS": 2,   # Radius des Zylinder-Nubs an den Clips
@@ -27,8 +27,32 @@ DEFAULTS_HUAWEI_MEDIAPAD_M5_LITE_10 = {
     "CUTOUT_RIGHT_HEIGHT": 50.0, # Cutout rechts: Höhe
     "CUTOUT_RIGHT_THROUGH_FLANGE": 0,  # Cutout rechts: auch durch Flansch schneiden (1=ja, 0=nein)
 }
+DEFAULTS_SAMSUNG_GALAXY_TAB_S__SM_T700 = {
+    "TABLET_THICKNESS": 8.0,
+    "WALL_THICKNESS": 2.4,
+    "HOLDER_WIDTH": 23.0,
+    "HOLDER_HEIGHT": 130.0,
+    "SIDE_FLANGE_WIDTH": 9.0,
+    "BOTTOM_FLANGE_WIDTH": 20.0,
+    "CLIP_WIDTH": 12.0,
+    "CLIP_LENGTH": 20.0,
+    "CLIP_NUB_RADIUS": 2,   # Radius des Zylinder-Nubs an den Clips
+    "GUSSET_SIZE": 2.0,
+    "BOTTOM_EXTENSION": 60.0,  # Verlängerung am Boden nach innen (L-Form)
+    "BEAM_WIDTH": 10.0,        # Balken: Breite (X-Richtung)
+    "BEAM_HEIGHT_FRONT": 13.0,  # Balken: Höhe vorne (Y-Richtung)
+    "BEAM_LENGTH": 80.0,       # Balken: Länge (Z-Richtung, nach hinten)
+    "BEAM_TILT_ANGLE": 15.0,   # Balken: Neigungswinkel in Grad
+    "CUTOUT_LEFT_Y": 0.0,     # Cutout links (von vorne): Y-Position ab Flansch
+    "CUTOUT_LEFT_HEIGHT": 0.0, # Cutout links: Höhe
+    "CUTOUT_LEFT_THROUGH_FLANGE": 0,  # Cutout links: auch durch Flansch schneiden (1=ja, 0=nein)
+    "CUTOUT_RIGHT_Y": 55.0,    # Cutout rechts (von vorne): Y-Position ab Flansch
+    "CUTOUT_RIGHT_HEIGHT": 15.0, # Cutout rechts: Höhe
+    "CUTOUT_RIGHT_THROUGH_FLANGE": 1,  # Cutout rechts: auch durch Flansch schneiden (1=ja, 0=nein)
+}
 
-DEFAULTS = DEFAULTS_HUAWEI_MEDIAPAD_M5_LITE_10
+
+DEFAULTS = DEFAULTS_SAMSUNG_GALAXY_TAB_S__SM_T700
 
 PARAMS = DEFAULTS.copy()
 for key, default in DEFAULTS.items():
@@ -44,8 +68,8 @@ def create_geometry(doc):
     spacer_h = PARAMS["TABLET_THICKNESS"]  # Genau so hoch wie das Tablet
     
     # Basis-Struktur
-    flange = create_box(PARAMS["FLANGE_WIDTH"], PARAMS["HOLDER_HEIGHT"], t,
-                        x=-PARAMS["FLANGE_WIDTH"] - t, y=0, z=0)
+    flange = create_box(PARAMS["SIDE_FLANGE_WIDTH"], PARAMS["HOLDER_HEIGHT"], t,
+                        x=-PARAMS["SIDE_FLANGE_WIDTH"] - t, y=0, z=0)
     
     side_wall = create_box(t, PARAMS["HOLDER_HEIGHT"], spacer_h + t,
                            x=-t, y=0, z=0)
@@ -53,9 +77,9 @@ def create_geometry(doc):
     back_plate = create_box(PARAMS["HOLDER_WIDTH"], PARAMS["HOLDER_HEIGHT"], t,
                             x=0, y=0, z=spacer_h)
     
-    total_w = PARAMS["FLANGE_WIDTH"] + t + PARAMS["HOLDER_WIDTH"]
+    total_w = PARAMS["SIDE_FLANGE_WIDTH"] + t + PARAMS["HOLDER_WIDTH"]
     bottom = create_box(total_w, t, spacer_h + t,
-                        x=-PARAMS["FLANGE_WIDTH"] - t, y=0, z=0)
+                        x=-PARAMS["SIDE_FLANGE_WIDTH"] - t, y=0, z=0)
     
     part = flange.fuse(side_wall).fuse(back_plate).fuse(bottom)
     
@@ -74,8 +98,8 @@ def create_geometry(doc):
     
     # Unterer Flansch (bei Z=0, wie der seitliche Flansch, zum Anschrauben)
     total_bottom_width = PARAMS["HOLDER_WIDTH"] + bottom_ext
-    bottom_flange = create_box(total_bottom_width, PARAMS["FLANGE_WIDTH"], t,
-                               x=0, y=-PARAMS["FLANGE_WIDTH"], z=0)
+    bottom_flange = create_box(total_bottom_width, PARAMS["BOTTOM_FLANGE_WIDTH"], t,
+                               x=0, y=-PARAMS["BOTTOM_FLANGE_WIDTH"], z=0)
     part = part.fuse(bottom_flange)
     
     # Balken zur Tablet-Stützung
@@ -93,11 +117,11 @@ def create_geometry(doc):
     tilt_offset = beam_length * math.tan(math.radians(tilt_angle))  # Y-Verschiebung hinten
     
     # Trapez-Profil in YZ-Ebene erstellen (vorne hoch, hinten schmal und nach oben geneigt)
-    # Untere Kante bei y=-FLANGE_WIDTH (bündig mit Flansch-Unterkante)
-    p1 = Base.Vector(beam_start_x, -PARAMS["FLANGE_WIDTH"], 0)
-    p2 = Base.Vector(beam_start_x, -PARAMS["FLANGE_WIDTH"] + beam_height_front, 0)
-    p3 = Base.Vector(beam_start_x, -PARAMS["FLANGE_WIDTH"] + beam_height_back + tilt_offset, beam_length)
-    p4 = Base.Vector(beam_start_x, -PARAMS["FLANGE_WIDTH"] + tilt_offset, beam_length)
+    # Untere Kante bei y=-BOTTOM_FLANGE_WIDTH (bündig mit Flansch-Unterkante)
+    p1 = Base.Vector(beam_start_x, -PARAMS["BOTTOM_FLANGE_WIDTH"], 0)
+    p2 = Base.Vector(beam_start_x, -PARAMS["BOTTOM_FLANGE_WIDTH"] + beam_height_front, 0)
+    p3 = Base.Vector(beam_start_x, -PARAMS["BOTTOM_FLANGE_WIDTH"] + beam_height_back + tilt_offset, beam_length)
+    p4 = Base.Vector(beam_start_x, -PARAMS["BOTTOM_FLANGE_WIDTH"] + tilt_offset, beam_length)
     wire_beam = Part.makePolygon([p1, p2, p3, p4, p1])
     face_beam = Part.Face(wire_beam)
     beam_shape = face_beam.extrude(Base.Vector(beam_width, 0, 0))
@@ -115,8 +139,8 @@ def create_geometry(doc):
     # Y-Position auf Balken-Oberseite bei gegebenem Z
     def beam_top_y_at_z(z):
         t_param = z / beam_length
-        y_front = -PARAMS["FLANGE_WIDTH"] + beam_height_front
-        y_back = -PARAMS["FLANGE_WIDTH"] + beam_height_back + tilt_offset
+        y_front = -PARAMS["BOTTOM_FLANGE_WIDTH"] + beam_height_front
+        y_back = -PARAMS["BOTTOM_FLANGE_WIDTH"] + beam_height_back + tilt_offset
         return y_front + t_param * (y_back - y_front)
     
     diag_bottom_y_front = beam_top_y_at_z(diag_front_z)  # Unterseite Diagonale vorne (auf Balken)
@@ -154,9 +178,14 @@ def create_geometry(doc):
     diagonal_narrow = face_diag.extrude(Base.Vector(t, 0, 0))
     
     # Teil 2: Klebeflächen-Verbreiterung vorne (an Rückseite der Rückwand)
-    glue_width = beam_width - t  # Zusätzliche Breite
-    glue_box = create_box(glue_width, diag_short_side, t,
-                          x=beam_start_x, y=diag_bottom_y_front, z=diag_front_z)
+    # Geht von z=0 bis z=diag_front_z+t
+    # In Y-Richtung verlängert um halbe Balkenhöhe nach unten (wegen Schräge)
+    glue_width = beam_width  # Volle Breite des Balkens
+    glue_depth = diag_front_z + t  # Von z=0 bis hinter die Rückwand
+    glue_height = diag_short_side + beam_height_front / 2  # 15mm + halbe Balkenhöhe
+    glue_y_start = diag_bottom_y_front - beam_height_front / 2  # Um halbe Balkenhöhe nach unten verschoben
+    glue_box = create_box(glue_width, glue_height, glue_depth,
+                          x=beam_start_x, y=glue_y_start, z=0)
     
     diagonal = diagonal_narrow.fuse(glue_box)
     
@@ -213,7 +242,19 @@ def create_geometry(doc):
     
     # Querschnitt des Hauptteils aus dem Balken ausschneiden
     # (für exakte Klebeflächen - Flansch und Gusset werden abgeschnitten)
-    beam_complete = beam_complete.cut(part)
+    # Rahmen in -Z Richtung verlängern um loses Material vor dem Rahmen zu entfernen
+    part_extended = part.copy()
+    extension_faces = []
+    for face in part_extended.Faces:
+        # Nur Flächen die in -Z Richtung zeigen (normale hat Z-Komponente < 0)
+        if face.normalAt(0, 0).z < -0.1:
+            extension_faces.append(face)
+    if extension_faces:
+        for face in extension_faces:
+            extension = face.extrude(Base.Vector(0, 0, -(spacer_h + t)))
+            part_extended = part_extended.fuse(extension)
+    
+    beam_complete = beam_complete.cut(part_extended)
     
     # Löcher in die Rückwand schneiden (Material sparen)
     grid_size = 8.0
@@ -231,11 +272,12 @@ def create_geometry(doc):
     while y + grid_size <= PARAMS["HOLDER_HEIGHT"] - margin:
         x = margin
         while x + grid_size <= PARAMS["HOLDER_WIDTH"] - margin:
-            # Prüfen ob im Clip-Bereich
-            in_clip_top = (x < clip_x + clip_w + 2 and x + grid_size > clip_x - 2 and
-                          y < y_top + clip_l + 2 and y + grid_size > y_top - 2)
-            in_clip_bot = (x < clip_x + clip_w + 2 and x + grid_size > clip_x - 2 and
-                          y < y_bot + 2 and y + grid_size > y_bot - clip_l - 2)
+            # Prüfen ob im Clip-Bereich (mit größerem Sicherheitsabstand)
+            clip_margin = 5.0  # Sicherheitsabstand um die Clips
+            in_clip_top = (x < clip_x + clip_w + clip_margin and x + grid_size > clip_x - clip_margin and
+                          y < y_top + clip_l + clip_margin and y + grid_size > y_top - clip_margin)
+            in_clip_bot = (x < clip_x + clip_w + clip_margin and x + grid_size > clip_x - clip_margin and
+                          y < y_bot + clip_margin and y + grid_size > y_bot - clip_l - clip_margin)
             
             if not in_clip_top and not in_clip_bot:
                 cutout = create_box(grid_size, grid_size, t * 3,
@@ -303,20 +345,22 @@ def create_geometry(doc):
     # Position: linke Seitenwand, y=CUTOUT_LEFT_Y ab Flansch
     # In Z-Achse: optional ab Flansch (z=0) oder erst danach (z=t)
     # In X-Achse: Seitenwand + Gussets, optional auch durch Flansch
-    cutout_z = 0 if PARAMS["CUTOUT_LEFT_THROUGH_FLANGE"] else t
-    cutout_x_extra = PARAMS["FLANGE_WIDTH"] if PARAMS["CUTOUT_LEFT_THROUGH_FLANGE"] else 0
-    cutout_right = create_box(t + gusset_size + gusset_size + cutout_x_extra, PARAMS["CUTOUT_LEFT_HEIGHT"], spacer_h + t + t - cutout_z,
-                              x=total_bottom_width - gusset_size, y=t + PARAMS["CUTOUT_LEFT_Y"], z=cutout_z)
-    part_right = part_right.cut(cutout_right)
+    if PARAMS["CUTOUT_LEFT_HEIGHT"] > 0:
+        cutout_z = 0 if PARAMS["CUTOUT_LEFT_THROUGH_FLANGE"] else t
+        cutout_x_extra = PARAMS["SIDE_FLANGE_WIDTH"] if PARAMS["CUTOUT_LEFT_THROUGH_FLANGE"] else 0
+        cutout_right = create_box(t + gusset_size + gusset_size + cutout_x_extra, PARAMS["CUTOUT_LEFT_HEIGHT"], spacer_h + t + t - cutout_z,
+                                  x=total_bottom_width - gusset_size, y=t + PARAMS["CUTOUT_LEFT_Y"], z=cutout_z)
+        part_right = part_right.cut(cutout_right)
     
     # Cutout nur im rechten Teil (von vorne gesehen) - das ist TabletHolder_Left im Code
     # Position: rechte Seitenwand, y=CUTOUT_RIGHT_Y ab Flansch
     # In X-Achse: Seitenwand + Gussets, optional auch durch Flansch
-    cutout_z = 0 if PARAMS["CUTOUT_RIGHT_THROUGH_FLANGE"] else t
-    cutout_x_extra = PARAMS["FLANGE_WIDTH"] if PARAMS["CUTOUT_RIGHT_THROUGH_FLANGE"] else 0
-    cutout_left = create_box(t + gusset_size + gusset_size + cutout_x_extra, PARAMS["CUTOUT_RIGHT_HEIGHT"], spacer_h + t + t - cutout_z,
-                             x=-t - gusset_size - cutout_x_extra, y=t + PARAMS["CUTOUT_RIGHT_Y"], z=cutout_z)
-    part = part.cut(cutout_left)
+    if PARAMS["CUTOUT_RIGHT_HEIGHT"] > 0:
+        cutout_z = 0 if PARAMS["CUTOUT_RIGHT_THROUGH_FLANGE"] else t
+        cutout_x_extra = PARAMS["SIDE_FLANGE_WIDTH"] if PARAMS["CUTOUT_RIGHT_THROUGH_FLANGE"] else 0
+        cutout_left = create_box(t + gusset_size + gusset_size + cutout_x_extra, PARAMS["CUTOUT_RIGHT_HEIGHT"], spacer_h + t + t - cutout_z,
+                                 x=-t - gusset_size - cutout_x_extra, y=t + PARAMS["CUTOUT_RIGHT_Y"], z=cutout_z)
+        part = part.cut(cutout_left)
     
     obj_left = doc.addObject("Part::Feature", "TabletHolder_Left")
     obj_left.Shape = part

@@ -88,5 +88,7 @@ Ein parametrischer Halter für Tablets als digitaler Bilderrahmen. Der Halter wi
     * Prozess 0.20mm Standard
     * Die Halterungen werden mit dem aufzuklebenden Flansch nach oben gedruckt. Stützstrukturen müssen aktiviert werden
     * Die beiden Ständer-Teile werdenliegend ohne Stützen gedruckt
-    * Infill 0%, dafür 100 Wandschleifen (massiver Druck als "Wände" für bessere Stabilität)
+    * massiver Druck:
+        * Infill 0%, dafür 100 Wandschleifen (alles als "Wände" für bessere Stabilität)
+        * Alternativ: 4 Wandschleifen, 100% Infill
 
