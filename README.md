@@ -92,3 +92,19 @@ Ein parametrischer Halter für Tablets als digitaler Bilderrahmen. Der Halter wi
         * Infill 0%, dafür 100 Wandschleifen (alles als "Wände" für bessere Stabilität)
         * Alternativ: 4 Wandschleifen, 100% Infill
 
+## Lappenhalter
+
+Ein Halter für Lappen zum Aufstecken auf einen Wasserhahn.
+
+* Geometrie-Datei: `geometry_lappenhalter.py`
+* Features
+    * Ring mit Snap-Öffnung zum Aufstecken auf Wasserhahn-Rohr
+    * Stange (100mm) mit Runterfall-Schutz (Dreieck am Ende)
+    * Parametrisch anpassbar für verschiedene Rohrdurchmesser und Längen
+* Slicer-Settings
+    * Material: **PETG** (feuchtigkeitsbeständig, flexibel für Snap-Verbindung)
+    * 4 Perimeter (Ring wird komplett massiv)
+    * 20-30% Infill, Gyroid oder Grid (nur für Stange relevant)
+    * Druckrichtung: Z wie modelliert (Schichten parallel zum Ring)
+
+
