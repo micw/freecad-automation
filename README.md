@@ -92,6 +92,23 @@ Ein parametrischer Halter für Tablets als digitaler Bilderrahmen. Der Halter wi
         * Infill 0%, dafür 100 Wandschleifen (alles als "Wände" für bessere Stabilität)
         * Alternativ: 4 Wandschleifen, 100% Infill
 
+## ID.7 Mobile Holder
+
+Ein Halter für Smartphones im VW ID.7. Der Halter rastet in die bestehende Mulde im Cockpit ein. Ein handelsüblicher Magnethalter kann über den 17mm Kugelkopf befestigt werden.
+
+![ID.7 Phone Holder in FreeCAD](img/ID7%20Phone%20Holder.png)
+
+* Geometrie-Datei: `geometry_id7_mobile_holder.py`
+* Features
+    * 2D-Kontur aus 28 Punkten mit Fillet-Radien, extrudiert in Z
+    * 17mm Standard-Kugelkopf auf Zylinder
+* Slicer-Settings
+    * Auf der Seite liegend drucken
+    * Material: **PLA** oder **PETG**
+    * 3–4 Perimeter/Wandschleifen (stabile Wandung für Rastnasen)
+    * Infill: **20–30%**, Gyroid oder Grid
+    * Stützstrukturen sind für die Kugel notwendig
+
 ## Lappenhalter
 
 Ein Halter für Lappen zum Aufstecken auf einen Wasserhahn.
